@@ -1,3 +1,7 @@
+A local-first, multi-provider LLM workbench for chatting with local, remote and cloud AI models. 
+Built with Streamlit for Ollama, OpenAI, Anthropic, Gemini, Groq, OpenRouter, LiteLLM and OpenAI-compatible AI models.
+
+
 # PeaBox Streamlit LLM Workbench v4
 
 A direct upgrade of v3, preserving SSH Ollama, Direct Ollama, OpenAI-compatible providers, Anthropic, file extraction, vision inputs, model discovery, reasoning controls and local SQLite history.
