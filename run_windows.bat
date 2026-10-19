@@ -2,13 +2,10 @@
 setlocal
 cd /d "%~dp0"
 if not exist .venv\Scripts\python.exe (
-  echo Creating Python environment...
-  py -m venv .venv
-  call .venv\Scripts\activate.bat
-  python -m pip install --upgrade pip
-  pip install -r requirements.txt
-) else (
-  call .venv\Scripts\activate.bat
+ echo Creating Python environment...
+ py -m venv .venv
 )
-streamlit run app.py
+.venv\Scripts\python.exe -m pip install --upgrade pip
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+.venv\Scripts\python.exe -m streamlit run app.py
 pause
