@@ -9,7 +9,9 @@ if 'config' not in st.session_state:st.session_state.config=load_config()
 if 'conversation_id' not in st.session_state:
  cs=list_conversations();st.session_state.conversation_id=cs[0]['id'] if cs else new_conversation()
 if 'models' not in st.session_state:st.session_state.models={}
-def pkey(p):return keyring.get_password('PeaBoxStreamlitLLM',p) or ''
+def pkey(p):
+ try: return keyring.get_password('PeaBoxStreamlitLLM',p) or ''
+ except Exception: return ''
 config=st.session_state.config;enabled=[p for p in PROVIDER_PRESETS if config.get('providers',{}).get(p,{}).get('enabled',True)]
 with st.sidebar:
  st.title('🟣 PeaBox AI');st.caption('LLM Workbench v4')
@@ -21,7 +23,7 @@ with st.sidebar:
  st.divider();st.page_link('pages/1_Settings.py',label='Settings & API Vault',icon='⚙️')
  st.caption('Provider credentials are managed on the dedicated Settings page.')
 if not enabled:st.error('No providers are enabled. Open Settings & API Vault.');st.stop()
-default=config.get('app',{}).get('default_provider',enabled[0]);provider=st.selectbox('Provider',enabled,index=enabled.index(default) if default in enabled else 0);cfg=config.setdefault('providers',{}).setdefault(provider,{});preset=PROVIDER_PRESETS[provider]
+default=config.get('app',{}).get('default_provider') or ('Direct Ollama' if 'Direct Ollama' in enabled else enabled[0]);provider=st.selectbox('Provider',enabled,index=enabled.index(default) if default in enabled else 0);cfg=config.setdefault('providers',{}).setdefault(provider,{});preset=PROVIDER_PRESETS[provider]
 if provider!='SSH Ollama':cfg.setdefault('base_url',preset.get('base_url',''))
 head1,head2=st.columns([3,2])
 with head1:st.markdown('<div class="pb"><h2>PeaBox AI Workbench</h2><span>Local, remote and cloud models in one focused workspace.</span></div>',unsafe_allow_html=True)
@@ -41,10 +43,12 @@ with manage_tab:
  conv=next((x for x in list_conversations() if x['id']==st.session_state.conversation_id),None)
  newtitle=st.text_input('Conversation title',conv['title'] if conv else 'New chat')
  a,b,c,d=st.columns(4)
+ if config.get('app',{}).get('confirm_delete',True):confirm_delete=st.checkbox('Confirm permanent delete')
+ else:confirm_delete=True
  if a.button('Rename'):update_conversation(st.session_state.conversation_id,title=newtitle);st.rerun()
  if b.button('Pin / unpin'):update_conversation(st.session_state.conversation_id,pinned=0 if conv and conv.get('pinned') else 1);st.rerun()
  if c.button('Archive'):update_conversation(st.session_state.conversation_id,archived=1);st.session_state.conversation_id=new_conversation();st.rerun()
- if d.button('Delete'):delete_conversation(st.session_state.conversation_id);st.session_state.conversation_id=new_conversation();st.rerun()
+ if d.button('Delete',disabled=not confirm_delete):delete_conversation(st.session_state.conversation_id);st.session_state.conversation_id=new_conversation();st.rerun()
  data=export_conversation(st.session_state.conversation_id);st.download_button('Export conversation as JSON',json.dumps(data,indent=2),file_name='peabox-conversation.json',mime='application/json')
 with chat_tab:
  messages=load_messages(st.session_state.conversation_id)

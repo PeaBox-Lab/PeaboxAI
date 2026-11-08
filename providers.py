@@ -10,7 +10,7 @@ def _parse_parameters(text):
  r={}
  for line in (text or '').splitlines():
   p=line.strip().split(None,1)
-  if len(p)==2 and p[0] not in r:r[p[0]]=p[1].strip().strip('"')
+  if len(p)==2 and p[0].strip('"') not in r:r[p[0].strip('"')]=p[1].strip().strip('"')
  return r
 def _ssh_base(s):
  if not s.get('key_path') or not s.get('host'):raise ValueError('Configure SSH host and private-key path in Settings.')
@@ -20,6 +20,10 @@ def _ssh_json(s,e,p=None,timeout=120):
  x=subprocess.run(_ssh_base(s)+[remote],input=json.dumps(p) if p is not None else None,capture_output=True,text=True,timeout=timeout)
  if x.returncode:raise RuntimeError(x.stderr.strip() or x.stdout.strip() or 'SSH request failed')
  return json.loads(x.stdout)
+def _require_base_url(s):
+ base=(s or {}).get('base_url')
+ if not base:raise ValueError('Configure the Base URL in Settings.')
+ return base
 def _http_json(base,e,p=None,key='',timeout=120):
  h={'Content-Type':'application/json'}
  if key:h['Authorization']=f'Bearer {key}'
@@ -32,11 +36,11 @@ def infer_cloud_capabilities(provider,model):
 def discover_models(provider,s,key=''):
  kind=PROVIDER_PRESETS[provider]['kind']
  if kind in {'ssh_ollama','direct_ollama'}:
-  call=(lambda e,p=None:_ssh_json(s,e,p)) if kind=='ssh_ollama' else (lambda e,p=None:_http_json(s['base_url'],e,p,key));out=[]
+  call=(lambda e,p=None:_ssh_json(s,e,p)) if kind=='ssh_ollama' else (lambda e,p=None:_http_json(_require_base_url(s),e,p,key));out=[]
   for item in call('/api/tags').get('models',[]):
    n=item.get('name') or item.get('model');d=call('/api/show',{'model':n});out.append(ModelInfo(n,set(d.get('capabilities',[])),_parse_parameters(d.get('parameters','')),d.get('details',{})))
   return out
- if kind=='anthropic':return [ModelInfo(x.id,infer_cloud_capabilities(provider,x.id)) for x in Anthropic(api_key=key).models.list(limit=100).data]
+ if kind=='anthropic':return [ModelInfo(x.id,infer_cloud_capabilities(provider,x.id)) for x in Anthropic(api_key=key,base_url=s.get('base_url') or None).models.list(limit=100).data]
  return [ModelInfo(x.id,infer_cloud_capabilities(provider,x.id)) for x in OpenAI(api_key=key or 'not-required',base_url=s['base_url']).models.list().data]
 def test_connection(provider,s,key=''):return len(discover_models(provider,s,key))
 def chat(provider,model,messages,images,s,key=''):
@@ -46,17 +50,22 @@ def chat(provider,model,messages,images,s,key=''):
   if images:outgoing[-1]['images']=[x['base64'] for x in images]
   p={'model':model,'messages':outgoing,'stream':False};reason=s.get('reasoning','Default')
   if reason!='Default':p['think']=False if reason=='Off' else reason.lower()
-  if not s.get('use_defaults',True):p['options']={k:s[k] for k in ('temperature','top_p','top_k','repeat_penalty','num_ctx')}
-  d=_ssh_json(s,'/api/chat',p,1800) if kind=='ssh_ollama' else _http_json(s['base_url'],'/api/chat',p,key,1800);m=d.get('message',{});return m.get('content',''),m.get('thinking','')
+  if not s.get('use_defaults',True):
+   opts={k:s[k] for k in ('temperature','top_p','top_k','repeat_penalty','num_ctx') if k in s}
+   if s.get('max_tokens'):opts['num_predict']=int(s['max_tokens'])
+   p['options']=opts
+  d=_ssh_json(s,'/api/chat',p,1800) if kind=='ssh_ollama' else _http_json(_require_base_url(s),'/api/chat',p,key,1800);m=d.get('message',{});return m.get('content',''),m.get('thinking','')
  if kind=='anthropic':
+  system='\n'.join(str(m.get('content','')) for m in messages if m['role']=='system').strip()
   converted=[{'role':m['role'],'content':m['content']} for m in messages if m['role']!='system']
   if images:converted[-1]['content']=[{'type':'text','text':messages[-1]['content']}]+[{'type':'image','source':{'type':'base64','media_type':i['media_type'],'data':i['base64']}} for i in images]
   kw={'model':model,'messages':converted,'max_tokens':s.get('max_tokens',4096)}
+  if system:kw['system']=system
   if not s.get('use_defaults',True):kw.update(temperature=s['temperature'],top_p=s['top_p'])
-  r=Anthropic(api_key=key).messages.create(**kw);return '\n'.join(b.text for b in r.content if getattr(b,'type','')=='text'),''
+  r=Anthropic(api_key=key,base_url=s.get('base_url') or None).messages.create(**kw);return '\n'.join(b.text for b in r.content if getattr(b,'type','')=='text'),''
  converted=[dict(m) for m in messages]
  if images:converted[-1]['content']=[{'type':'text','text':messages[-1]['content']}]+[{'type':'image_url','image_url':{'url':f"data:{i['media_type']};base64,{i['base64']}"}} for i in images]
  kw={'model':model,'messages':converted}
  if not s.get('use_defaults',True):kw.update(temperature=s['temperature'],top_p=s['top_p'],max_tokens=s.get('max_tokens',4096))
  if s.get('reasoning') in {'Low','Medium','High'}:kw['reasoning_effort']=s['reasoning'].lower()
- r=OpenAI(api_key=key or 'not-required',base_url=s['base_url']).chat.completions.create(**kw);return r.choices[0].message.content or '',''
+ r=OpenAI(api_key=key or 'not-required',base_url=s.get('base_url')).chat.completions.create(**kw);return r.choices[0].message.content or '',''

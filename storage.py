@@ -1,8 +1,8 @@
 from __future__ import annotations
-import json, sqlite3
+import json, os, sqlite3
 from datetime import datetime
 from pathlib import Path
-APP_DIR=Path.home()/'.peabox_streamlit_llm'; APP_DIR.mkdir(parents=True,exist_ok=True)
+APP_DIR=Path(os.environ.get('PEABOX_DATA_DIR') or Path.home()/'.peabox_streamlit_llm'); APP_DIR.mkdir(parents=True,exist_ok=True)
 DB_PATH=APP_DIR/'workbench.db'; CONFIG_PATH=APP_DIR/'config.json'
 def connect():
  c=sqlite3.connect(DB_PATH); c.row_factory=sqlite3.Row; c.execute('PRAGMA foreign_keys=ON'); return c
@@ -19,7 +19,7 @@ def new_conversation(title='New chat'):
  with connect() as c: return c.execute('INSERT INTO conversations(title,created_at,updated_at) VALUES(?,?,?)',(title,t,t)).lastrowid
 def list_conversations(search='',archived=False):
  q='SELECT * FROM conversations WHERE archived=?'; a=[int(archived)]
- if search: q+=' AND title LIKE ?'; a.append(f'%{search}%')
+ if search: q+=" AND title LIKE ? ESCAPE '\\'"; a.append('%'+search.replace('\\','\\\\').replace('%','\\%').replace('_','\\_')+'%')
  q+=' ORDER BY pinned DESC,updated_at DESC'
  with connect() as c:return [dict(x) for x in c.execute(q,a)]
 def load_messages(cid):
@@ -35,7 +35,9 @@ def delete_conversation(cid):
  with connect() as c:c.execute('DELETE FROM conversations WHERE id=?',(cid,))
 def export_conversation(cid):
  with connect() as c:
-  conv=dict(c.execute('SELECT * FROM conversations WHERE id=?',(cid,)).fetchone()); msgs=[dict(x) for x in c.execute('SELECT role,content,thinking,created_at FROM messages WHERE conversation_id=? ORDER BY id',(cid,))]
+  row=c.execute('SELECT * FROM conversations WHERE id=?',(cid,)).fetchone()
+  if row is None: raise ValueError(f'Conversation not found: {cid}')
+  conv=dict(row); msgs=[dict(x) for x in c.execute('SELECT role,content,thinking,created_at FROM messages WHERE conversation_id=? ORDER BY id',(cid,))]
  return {'conversation':conv,'messages':msgs}
 def load_config():
  try:return json.loads(CONFIG_PATH.read_text('utf-8')) if CONFIG_PATH.exists() else {}

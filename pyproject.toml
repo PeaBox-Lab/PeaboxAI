@@ -1,11 +1,24 @@
 [project]
-name = "PeaBox AI"
-version = "0.1.0"
-description = "Universal open-source AI workspace for self-hosted and cloud language models."
+name = "peabox-ai-workbench"
+version = "4.1.0"
+description = "Local-first, multi-provider AI workbench for Ollama, OpenAI, Anthropic, Gemini, Groq, OpenRouter, LiteLLM and OpenAI-compatible endpoints."
+readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
+keywords = ["ollama", "llm", "ai", "workbench", "openai", "anthropic", "local-first"]
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
 
 [project.urls]
-Homepage = "https://github.com/iwebslogtech/peaboxai"
-Repository = "https://github.com/iwebslogtech/peaboxai"
-Issues = "https://github.com/iwebslogtech/peaboxai/issues"
+Homepage = "https://github.com/PeaBox-Lab/PeaboxAI"
+Repository = "https://github.com/PeaBox-Lab/PeaboxAI"
+Issues = "https://github.com/PeaBox-Lab/PeaboxAI/issues"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

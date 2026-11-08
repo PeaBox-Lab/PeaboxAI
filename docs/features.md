@@ -26,8 +26,6 @@ Supported providers include:
 
 ✅ Avoid vendor lock-in
 
-✅ Compare models side-by-side
-
 ✅ Use the best model for each task
 
 ✅ Switch providers in seconds
@@ -170,11 +168,11 @@ Detected capabilities may include:
 
 ```text
 Chat
-Reasoning
+Thinking / Reasoning
 Vision
-Function Calling
-Tools
 ```
+
+For Ollama, capabilities come from the server. For cloud and OpenAI-compatible providers they are inferred from the model name.
 
 ### Benefits
 
@@ -328,11 +326,11 @@ Supported controls:
 
 ---
 
-## Workspace-Oriented Design
+## Workspace-Oriented Design (Roadmap)
 
-Organize work by project.
+> **Status: planned, not yet implemented.** Workspaces are on the roadmap for v4.3. Today, organize work using conversation search, pinning and archiving.
 
-Example workspaces:
+Proposed design: organize work by project.
 
 ```text
 HR Transformation
@@ -348,7 +346,7 @@ Consulting
 Investments
 ```
 
-### Benefits
+### Proposed Benefits
 
 ✅ Better organization
 

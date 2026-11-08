@@ -1,12 +1,19 @@
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import keyring,streamlit as st
 from providers import PROVIDER_PRESETS,discover_models
 from storage import load_config,save_config,APP_DIR
 st.set_page_config(page_title='Settings | PeaBox AI',page_icon='⚙️',layout='wide')
 st.title('Settings & API Vault');st.caption('Connections are configured here, away from the chat workspace. API keys remain in Windows Credential Manager.')
 config=load_config();providers=config.setdefault('providers',{})
-def getkey(p):return keyring.get_password('PeaBoxStreamlitLLM',p) or ''
+def getkey(p):
+ try: return keyring.get_password('PeaBoxStreamlitLLM',p) or ''
+ except Exception: return ''
 def savekey(p,v):
- if v:keyring.set_password('PeaBoxStreamlitLLM',p,v)
+ if v:
+  try: keyring.set_password('PeaBoxStreamlitLLM',p,v)
+  except Exception as e: raise RuntimeError(f'Could not save the API key to the system credential store: {e}') from e
 t1,t2,t3=st.tabs(['Providers & APIs','Workbench defaults','Storage & privacy'])
 with t1:
  provider=st.selectbox('Provider',list(PROVIDER_PRESETS));preset=PROVIDER_PRESETS[provider];cfg=providers.setdefault(provider,{})
@@ -17,7 +24,9 @@ with t1:
    cfg['host']=st.text_input('VM host / IP',cfg.get('host',''));cfg['user']=st.text_input('SSH user',cfg.get('user','opc'));cfg['port']=st.number_input('SSH port',1,65535,int(cfg.get('port',22)));cfg['key_path']=st.text_input('Private-key path',cfg.get('key_path',''))
   else:
    cfg['base_url']=st.text_input('Base URL',cfg.get('base_url',preset.get('base_url','')))
-   if provider!='Direct Ollama':newkey=st.text_input('API key',type='password',placeholder='Leave blank to retain saved key')
+   if provider!='Direct Ollama':
+    newkey=st.text_input('API key',type='password',placeholder='Leave blank to retain saved key')
+    st.caption('API key saved in credential store.' if getkey(provider) else 'No API key saved yet.')
    else:newkey=''
   cfg['enabled']=st.toggle('Enabled',cfg.get('enabled',True));cfg['default_model']=st.text_input('Preferred model',cfg.get('default_model',''))
   if st.button('Save provider',type='primary'):savekey(provider,newkey);save_config(config);st.success('Provider configuration saved.')

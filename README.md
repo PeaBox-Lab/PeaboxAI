@@ -9,7 +9,7 @@ PeaBox LLM Workbench is a local-first, multi-provider AI workspace built with St
 
 Instead of switching between different AI applications, provider dashboards, and local model interfaces, PeaBox gives you one workspace for conversations, model selection, files, vision inputs, reasoning controls, and provider configuration.
 
-> **v4.0.0 – Multi-Provider Workbench**
+> **v4.1.0 – Multi-Provider Workbench**
 
 ---
 
@@ -435,11 +435,22 @@ PeaBox-LLM-Workbench/
 ├── attachments.py
 ├── storage.py
 ├── requirements.txt
+├── pyproject.toml
 ├── run_windows.bat
 ├── README.md
 │
 ├── pages/
 │   └── 1_Settings.py
+│
+├── tests/
+│   ├── conftest.py
+│   ├── test_app.py
+│   ├── test_attachments.py
+│   ├── test_providers.py
+│   └── test_storage.py
+│
+├── .github/workflows/
+│   └── python-checks.yml
 │
 └── .streamlit/
     └── config.toml
@@ -501,6 +512,12 @@ On Windows:
 %USERPROFILE%\.peabox_streamlit_llm
 ```
 
+Set the `PEABOX_DATA_DIR` environment variable to relocate this directory, for example for portable installs or testing:
+
+```powershell
+$env:PEABOX_DATA_DIR="D:\PeaBoxData"
+```
+
 Typical files include:
 
 ```text
@@ -526,13 +543,12 @@ Credentials are stored separately using the operating system's credential storag
 
 You need:
 
-- Windows
-- Python 3
+- Python 3.11 or newer (Windows, Linux or macOS)
 - Internet access when using cloud providers
 
 If you want to use local Ollama models, install and configure Ollama separately.
 
-If you want to use remote Ollama over SSH, you will also need access to a remote machine running Ollama and a valid SSH configuration.
+If you want to use remote Ollama over SSH, you will also need access to a remote machine running Ollama and a valid SSH configuration. Note that SSH key handling (`ssh` on `PATH`) is tested on Windows and Linux; on macOS it also works out of the box.
 
 ---
 
@@ -989,26 +1005,33 @@ Your local conversation database is stored separately from the project's virtual
 
 ---
 
+# 🧪 Development
+
+PeaBox uses `pytest` for automated tests. The suite covers the storage layer, attachment extraction, provider adapters (with a mocked Ollama server and mocked OpenAI/Anthropic SDKs) and headless smoke tests of the Streamlit UI. No API keys or network access are required.
+
+```powershell
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt pytest
+.\.venv\Scripts\python.exe -m pytest
+```
+
+Tests are isolated from your real data: `tests/conftest.py` points `PEABOX_DATA_DIR` at a temporary directory.
+
+---
+
 # 🗺️ Product Roadmap
 
-v4 establishes PeaBox as a multi-provider AI Workbench.
+PeaBox is developed in small, shippable releases. See [ROADMAP.md](ROADMAP.md) for the detailed plan.
 
-Future development areas include:
+Highlights of what is coming next:
 
-- Projects and Workspaces
-- Persistent Knowledge Base
-- Prompt Library
-- Model Compare
-- Streaming Responses
-- Research Mode
-- Usage and Cost Analytics
-- Artifacts
-- Model Benchmarking
-- Tool Calling
-- Local Data Analysis
-- Backup and Restore
+- **v4.2 Chat experience** — streaming responses, regenerate, side-by-side model comparison
+- **v4.3 Knowledge & RAG** — workspaces, local document index, cited answers, prompt library
+- **v4.4 Agents** — tool calling, MCP support, human approval, provider fallback
+- **v4.5 Observability** — usage/cost analytics, budget caps, backups
+- **v5.0 Teams** — authentication, shared workspaces, audit logs, SSO
 
-The longer-term goal is to evolve PeaBox beyond a multi-LLM chat client into a broader AI productivity Workbench.
+The longer-term goal is to evolve PeaBox beyond a multi-LLM chat client into a broader AI productivity workbench.
 
 ---
 
@@ -1093,15 +1116,7 @@ A useful feature request should explain:
 
 # 📜 License
 
-Before publicly distributing the project as open source, add the appropriate license file to the repository.
-
-For example, if PeaBox is released under the Apache License 2.0, add:
-
-```text
-LICENSE
-```
-
-to the root of the repository and update this section accordingly.
+PeaBox AI Workbench is licensed under the [Apache License 2.0](LICENSE). You may use, modify, fork, self-host and commercially deploy it subject to the license terms. See [NOTICE](NOTICE) and [TRADEMARKS.md](TRADEMARKS.md) for attribution and trademark information.
 
 ---
 
